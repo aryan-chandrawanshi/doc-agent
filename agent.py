@@ -27,7 +27,7 @@ def generate_document_plan(brief):
     CRITICAL IMAGE RULE: We use Wikipedia to source real images. For any image, provide a "search_term" that is a highly specific, 1-3 word noun that perfectly matches the section (e.g., "Espresso machine", "Solar panel", "Mars rover").
 
     If 'docx', output EXACTLY this structure:
-    {
+    {   "filename": "[short relevant filename with numbers and without file extensions]"
         "format": "docx",
         "title": "Document Title",
         "content": [
@@ -39,7 +39,7 @@ def generate_document_plan(brief):
     }
 
     If 'pptx', output EXACTLY this structure:
-    {
+    {   "filename": "[short relevant filename with numbers and without file extensions]"
         "format": "pptx",
         "title": "Presentation Title",
         "slides": [
@@ -58,7 +58,7 @@ def generate_document_plan(brief):
     }
 
     If 'xlsx', output EXACTLY this structure:
-    {
+    {   "filename": "[short relevant filename with numbers and without file extensions]"
         "format": "xlsx",
         "title": "Spreadsheet",
         "headers": ["Col 1", "Col 2"],
