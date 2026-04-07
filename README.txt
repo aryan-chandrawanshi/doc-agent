@@ -18,6 +18,6 @@ In the first draft, wikipedia was used for images. Using wikipedia has the advan
 In second draft, pexels was used for image fetching, for generic images in case wikipedia fails. This ensures some relevent image is inserted in every slide.  
 
 The formatted JSON is sent to either of three modules:
-render_pptx.py: Uses pptx python library to convert the JSON into .pptx file, render_docx.py : Uses docx library for generating .docx and render_xlsx.py : Uses openpxyl for .xlsx
-
+render_pptx.py: Uses pptx python library to convert the JSON into .pptx file, render_docx.py : Uses docx library for generating .docx and render_xlsx.py : Uses openpxyl for .xlsx 
+in this advanced-engine branch, added render_pdf too, but as with docx generation since such article type documents generally require contexted and related images to the text, so image added to pdf or docx generated may not feel perfectly matching, 
 The agent is run using main.py which provides a simple text interface and produces the file in the 
