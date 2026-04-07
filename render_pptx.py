@@ -1,29 +1,77 @@
 from pptx import Presentation
 from pptx.util import Inches, Pt
-import urllib.request
-import urllib.parse
-import json
+import requests
 import os
-import time  # <-- NEW: We need this to pause between requests
+import time
+from dotenv import load_dotenv
 
-# NEW: A custom User-Agent badge so Wikipedia knows we are a friendly bot
-CUSTOM_HEADERS = {'User-Agent': 'GeminiDocAgent/1.0 (LearningProject; friendly-bot)'}
+load_dotenv()
 
-def get_wiki_image_url(search_term):
-    """Searches Wikipedia and returns the URL of the top image."""
-    encoded_term = urllib.parse.quote(search_term)
-    url = f"https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch={encoded_term}&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=800&format=json"
+PEXELS_HEADERS = {
+    "Authorization": os.getenv("PEXELS_API_KEY"),
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+}
+
+WIKI_HEADERS = {
+    "User-Agent": "GeminiDocAgent/3.0 (LearningProject; hybrid-engine)"
+}
+
+def get_wiki_image_url(search_term, used_urls):
+    """Searches Wikipedia for factual, encyclopedic images."""
+    print(f" -> Searching Wikipedia (Factual) for: '{search_term}'")
+    url = "https://en.wikipedia.org/w/api.php"
+    params = {
+        "action": "query",
+        "generator": "search",
+        "gsrsearch": search_term,
+        "gsrlimit": 1,
+        "prop": "pageimages",
+        "piprop": "thumbnail",
+        "pithumbsize": 800,
+        "format": "json"
+    }
     
     try:
-        req = urllib.request.Request(url, headers=CUSTOM_HEADERS)
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode())
-            pages = data.get("query", {}).get("pages", {})
-            for page_id in pages:
-                if "thumbnail" in pages[page_id]:
-                    return pages[page_id]["thumbnail"]["source"]
+        response = requests.get(url, params=params, headers=WIKI_HEADERS, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        pages = data.get("query", {}).get("pages", {})
+        for page_id in pages:
+            if "thumbnail" in pages[page_id]:
+                img_url = pages[page_id]["thumbnail"]["source"]
+                if img_url not in used_urls:
+                    used_urls.add(img_url)
+                    return img_url
     except Exception as e:
-        pass
+        print(f" -> Wiki API Error: {e}")
+    return None
+
+def get_pexels_image_url(search_term, used_urls):
+    """Searches Pexels for high-quality stock photography."""
+    if not os.getenv("PEXELS_API_KEY"):
+        return None
+
+    print(f" -> Searching Pexels (Stock) for: '{search_term}'")
+    url = "https://api.pexels.com/v1/search"
+    params = {"query": search_term, "per_page": 5} 
+    
+    time.sleep(2) # Be polite to Pexels
+    
+    try:
+        response = requests.get(url, headers=PEXELS_HEADERS, params=params, timeout=10)
+        response.raise_for_status() 
+        data = response.json()
+        
+        if data.get('photos'):
+            for photo in data['photos']:
+                img_url = photo['src']['large']
+                if img_url not in used_urls:
+                    used_urls.add(img_url)
+                    return img_url
+    except Exception as e:
+        print(f" -> Pexels API Error: {e}")
+        
     return None
 
 def create_ppt_file(data, filename="output.pptx"):
@@ -31,6 +79,7 @@ def create_ppt_file(data, filename="output.pptx"):
     prs = Presentation()
 
     slides_data = data.get("slides", [])
+    used_images = set() 
 
     for slide_data in slides_data:
         if slide_data["type"] == "title_slide":
@@ -50,6 +99,8 @@ def create_ppt_file(data, filename="output.pptx"):
             tf.word_wrap = True 
             
             search_term = slide_data.get("search_term")
+            fallback_term = slide_data.get("fallback_search_term")
+            image_type = slide_data.get("image_type", "stock") # Default to stock if missing
             
             if search_term:
                 body_shape.left = Inches(0.5)
@@ -57,39 +108,44 @@ def create_ppt_file(data, filename="output.pptx"):
                 body_shape.top = Inches(1.8)
                 body_shape.height = Inches(5.0)
                 
-                print(f" -> Searching Wikipedia for: '{search_term}'")
-                img_url = get_wiki_image_url(search_term)
+                img_url = None
+                
+                # THE HYBRID ROUTING LOGIC
+                if image_type == "factual":
+                    # Try Wiki first for real people/places
+                    img_url = get_wiki_image_url(search_term, used_images)
+                
+                if not img_url:
+                    # If it wasn't factual, OR if Wikipedia didn't have it, try Pexels
+                    img_url = get_pexels_image_url(search_term, used_images)
+                
+                if not img_url and fallback_term:
+                    # The Ultimate Fallback
+                    print(f" -> No exact matches. Trying fallback: '{fallback_term}'")
+                    img_url = get_pexels_image_url(fallback_term, used_images)
                 
                 if img_url:
                     try:
-                        # --- NEW: The Polite Pause ---
-                        # Wait 1.5 seconds before downloading the actual image
-                        time.sleep(5.0) 
-                        
-                        req = urllib.request.Request(img_url, headers=CUSTOM_HEADERS)
-                        with urllib.request.urlopen(req) as response, open("temp_ppt_img.jpg", 'wb') as out_file:
-                            out_file.write(response.read())
-                            
-                        slide.shapes.add_picture(
-                            "temp_ppt_img.jpg", 
-                            left=Inches(5.2),   
-                            top=Inches(1.8),    
-                            height=Inches(4.5)  
-                        )
+                        response = requests.get(img_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=15, stream=True)
+                        response.raise_for_status() 
+
+                        with open("temp_ppt_img.jpg", 'wb') as out_file:
+                            out_file.write(response.content)
+            
+                        slide.shapes.add_picture("temp_ppt_img.jpg", left=Inches(5.2), top=Inches(1.8), height=Inches(4.5))
                         os.remove("temp_ppt_img.jpg")
+                        
                     except Exception as e:
                         print(f" -> Could not download image: {e}")
+                else:
+                    print(f" -> No unique images found. Leaving text space.")
             else:
                 body_shape.width = Inches(9.0)
 
             bullets = slide_data.get("bullets", [])
             for i, bullet in enumerate(bullets):
-                if i == 0:
-                    p = tf.paragraphs[0]
-                else:
-                    p = tf.add_paragraph()
+                p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
                 p.text = bullet
-                
                 p.font.size = Pt(20)
                 p.space_after = Pt(14) 
 

@@ -2,6 +2,7 @@ import agent
 import render_docx
 import render_xlsx
 import render_pptx
+import render_pdf
 import json
 
 def main():
@@ -44,8 +45,7 @@ def main():
         elif doc_format == "pptx":
             render_pptx.create_ppt_file(plan, f"{file_name}.pptx")
         elif doc_format == "pdf":
-            print("PDF rendering requested! (Code coming soon)")
-            # render_pdf.create_pdf_file(plan, "output.pdf")
+            render_pdf.create_pdf_file(plan, f"{file_name}.pdf")
         else:
             print(f"Error: Unknown format requested by AI: {doc_format}")
 
