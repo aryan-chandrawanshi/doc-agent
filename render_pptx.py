@@ -63,7 +63,7 @@ def create_ppt_file(data, filename="output.pptx"):
                 if img_url:
                     try:
                         # --- NEW: The Polite Pause ---
-                        # Wait 1.5 seconds before downloading the actual image
+                        # Wait 5 seconds before downloading the actual image
                         time.sleep(5.0) 
                         
                         req = urllib.request.Request(img_url, headers=CUSTOM_HEADERS)
