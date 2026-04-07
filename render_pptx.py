@@ -1,29 +1,24 @@
 from pptx import Presentation
 from pptx.util import Inches, Pt
 import urllib.request
-import urllib.parse
 import json
 import os
-import time  # <-- NEW: We need this to pause between requests
+import time 
+from ddgs import DDGS# <-- NEW: We need this to pause between requests
 
 # NEW: A custom User-Agent badge so Wikipedia knows we are a friendly bot
 CUSTOM_HEADERS = {'User-Agent': 'GeminiDocAgent/1.0 (LearningProject; friendly-bot)'}
 
-def get_wiki_image_url(search_term):
-    """Searches Wikipedia and returns the URL of the top image."""
-    encoded_term = urllib.parse.quote(search_term)
-    url = f"https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrsearch={encoded_term}&gsrlimit=1&prop=pageimages&piprop=thumbnail&pithumbsize=800&format=json"
-    
+def get_web_image_url(search_term):
+    """Searches the web via DDGS with a mandatory pre-search pause."""
+    print(" -> Pausing 10 seconds to avoid search engine bans...")
+    time.sleep(10) 
     try:
-        req = urllib.request.Request(url, headers=CUSTOM_HEADERS)
-        with urllib.request.urlopen(req) as response:
-            data = json.loads(response.read().decode())
-            pages = data.get("query", {}).get("pages", {})
-            for page_id in pages:
-                if "thumbnail" in pages[page_id]:
-                    return pages[page_id]["thumbnail"]["source"]
+        results = DDGS().images(search_term, max_results=1)
+        if results and len(results) > 0:
+            return results[0].get("image")
     except Exception as e:
-        pass
+        print(f" -> Search error: {e}")
     return None
 
 def create_ppt_file(data, filename="output.pptx"):
