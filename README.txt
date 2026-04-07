@@ -20,4 +20,15 @@ In second draft, pexels was used for image fetching, for generic images in case 
 The formatted JSON is sent to either of three modules:
 render_pptx.py: Uses pptx python library to convert the JSON into .pptx file, render_docx.py : Uses docx library for generating .docx and render_xlsx.py : Uses openpxyl for .xlsx 
 in this advanced-engine branch, added render_pdf too, but as with docx generation since such article type documents generally require contexted and related images to the text, so image added to pdf or docx generated may not feel perfectly matching, 
-The agent is run using main.py which provides a simple text interface and produces the file in the 
+The agent is run using main.py which provides a simple text interface and produces the file in the main folder in which the repo will be saved.
+
+1) why i made this?
+- i hoped to learn ai related stuff through this project specifically wanting to know - how do people implement ai into their businesses without always keeping a tab open for gemini?
+
+2)what i learned?
+- general knowledge : i learned what an api key is, how to use it to gain access to a model, how to store api keys safely in .env, what is a python environment, and many commands in cmd and git 
+
+3)what i used my brains for?
+- understanding the structure and syntax of various libraries and appreciated the first instance seeing object-oriented programming in action
+- giving ideas to gemini to add features on 1st draft and corrected it if it used older versions of libraries or implemented a feature using unnecessary logic
+
